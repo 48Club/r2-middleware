@@ -8,8 +8,12 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { ethers } from 'ethers'
+
+
 export default {
 	async fetch(request, env, ctx) {
-		return new Response('Hello World!');
+		let provider = new ethers.JsonRpcProvider(env.CF_BSC_RPC)
+		return new Response(JSON.stringify(await provider.getNetwork()), { status: 200 })
 	},
 };
