@@ -4,7 +4,3 @@ compatibility_date = "2024-12-24"
 compatibility_flags = ["nodejs_compat"]
 account_id = ""
 usage_model = "unbound"
-
-
-[vars]
-CF_BSC_RPC = "https://0.48.club"
