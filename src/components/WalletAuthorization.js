@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 
+
 const WalletAuthorization = () => {
+    const spAbi = [
+        "function getPoint(address) public view returns (uint256)"
+    ];
+    const minAllowPoint = ethers.toBigInt(48);
+
     const [isWalletConnected, setIsWalletConnected] = useState(false);
     const [walletAddress, setWalletAddress] = useState('');
     // 检查钱包是否已连接
     const getProvider = () => {
         let provider;
         if (window.ethereum == null) {
-            console.log("MetaMask not installed; using read-only defaults")
-            provider = ethers.getDefaultProvider();
+            return null;
         } else {
             provider = new ethers.BrowserProvider(window.ethereum);
-
         }
         return provider;
     }
+
     useEffect(() => {
         const checkWalletConnection = async () => {
             let provider = getProvider();
+            if (!provider) return;
+
             const accounts = await provider?.listAccounts();
             if (accounts?.length > 0) {
                 setWalletAddress(accounts[0].address);
@@ -32,6 +39,8 @@ const WalletAuthorization = () => {
     // 连接钱包
     const connectWallet = async () => {
         let provider = getProvider();
+        if (!provider) return;
+
         const signer = await provider?.getSigner();
         if (signer) {
             setWalletAddress(signer.address);
@@ -40,8 +49,6 @@ const WalletAuthorization = () => {
             alert('Failed to connect to wallet. Please try again.');
         }
     };
-
-
 
     const [option1, setOption1] = useState('');
     const [option2, setOption2] = useState('');
@@ -53,7 +60,6 @@ const WalletAuthorization = () => {
 
     const [options2, setOptions2] = useState([]);
     const [apiData, setApiData] = useState({});
-
     useEffect(() => {
         const fetchOptions = async () => {
             try {
@@ -104,16 +110,23 @@ const WalletAuthorization = () => {
             file: patchFile,
             tt: tt,
         })
-        console.log('msg:', msg);
+
         try {
             let provider = getProvider();
+            if (!provider) return;
+
             let signer = await provider?.getSigner();
             if (!signer) {
                 return alert('Failed to connect to wallet. Please try again.');
             }
 
+            const spContract = new ethers.Contract("0x928dC5e31de14114f1486c756C30f39Ab9578A92", spAbi, provider);
+            let point = await spContract.getPoint(signer.address);
+            if (point < minAllowPoint) {
+                return alert('This feature is only available to users with at least 48 points.');
+            }
+
             let sign = await signer.signMessage(msg)
-            console.log('sign:', sign);
 
             setAuthorized({
                 authorized: true,
@@ -125,7 +138,6 @@ const WalletAuthorization = () => {
             alert('An error occurred during authorization: ' + error.message);
         }
     };
-
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -176,7 +188,6 @@ const WalletAuthorization = () => {
                     Patch
                 </button>
             )}
-
 
             {authorized.authorized && (
                 <div style={{ marginTop: '20px' }}>
