@@ -115,8 +115,6 @@ const WalletAuthorization = () => {
                 </button>
             ) : (
                 <p>Connected Wallet: {walletAddress}</p>
-
-                // <p>Connected Wallet: {walletAddress}</p>
             )}
             <div style={{ marginBottom: '15px' }}>
                 <label>
@@ -136,7 +134,7 @@ const WalletAuthorization = () => {
 
             <div style={{ marginBottom: '15px' }}>
                 <label>
-                    version:
+                    your version:
                     <select
                         value={option2}
                         onChange={(e) => setOption2(e.target.value)}
@@ -154,14 +152,14 @@ const WalletAuthorization = () => {
 
             {isWalletConnected && (
                 <button onClick={handleAuthorize} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-                    Authorize
+                    Patch
                 </button>
             )}
 
 
             {authorized && (
                 <div style={{ marginTop: '20px' }}>
-                    <p>Authorization successful! Access your resource here:</p>
+                    <p>Signature successful! Access your resource here:</p>
                     <a href={link} target="_blank" rel="noopener noreferrer">
                         {link}
                     </a>
