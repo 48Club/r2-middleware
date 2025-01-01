@@ -35,27 +35,44 @@ export default {
 			return errorCode400();
 		}
 
-		console.log(url.searchParams.size);
 		let sig = url.searchParams.get('sig');
-		let msg = JSON.stringify({
+		let file = url.searchParams.get('file');
+		let msg = {
 			file: url.searchParams.get('file'),
-			tt: url.searchParams.get('tt'),
-		})
-		console.log(msg);
-
-
-		// @TODO: 验证签名
-		if (!sig) {
-			// 签名不合规
-			return errorCode400();
+			tt: parseInt(url.searchParams.get('tt')),
 		}
 
-		if (!(await checkUserSP('0x34a02F8706d8859F5cDd4a7620F26E12Ef23D168'))) {
+		if (msg.tt < Date.now() / 1000) {
+			return new Response('Token is expired.', { status: 400 });
+		}
+
+		const recoveredAddress = ethers.verifyMessage(JSON.stringify(msg), sig);
+
+		if (!(await checkUserSP(recoveredAddress))) {
 			// 用户 SP 不足
-			return errorCode400();
+			return new Response('Need more than 48 SoulPoint.', { status: 400 });
 		}
 
-		// 返回用户请求的 $file 的内容
-		return new Response("xixi~", { status: 200 })
+		const object = await env.R2.get(file, {
+			range: request.headers,
+			onlyIf: request.headers,
+		})
+
+		if (!object) {
+			return new Response('Not Found', { status: 404 });
+		}
+
+		const headers = new Headers()
+		object.writeHttpMetadata(headers)
+		headers.set('etag', object.httpEtag)
+		if (object.range) {
+			headers.set("content-range", `bytes ${object.range.offset}-${object.range.end ?? object.size - 1}/${object.size}`)
+		}
+
+		const status = object.body ? (request.headers.get("range") !== null ? 206 : 200) : 304
+		return new Response(object.body, {
+			headers,
+			status
+		})
 	},
 };
