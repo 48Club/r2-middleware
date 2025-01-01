@@ -24,15 +24,33 @@ async function checkUserSP(address) {
 	return await spContract.getPoint(address) >= minAllowPoint;
 }
 
-function errorCode400() {
-	return new Response('R U OK?', { status: 400 });
+function parseRange(encoded) {
+	if (encoded === null) {
+		return
+	}
+
+	const parts = encoded.split("bytes=")[1]?.split("-") ?? []
+	if (parts.length !== 2) {
+		throw new Error('Not supported to skip specifying the beginning/ending byte at this time')
+	}
+
+	return {
+		offset: Number(parts[0]),
+		end: Number(parts[1]),
+		length: Number(parts[1]) + 1 - Number(parts[0]),
+	}
 }
+
 
 export default {
 	async fetch(request, env, ctx) {
+		if (request.method !== 'GET') {
+			return new Response('Method Not Allowed', { status: 405 });
+		}
+
 		let url = new URL(request.url);
 		if (url.searchParams.size !== 3 || url.pathname !== '/') {
-			return errorCode400();
+			return new Response('R U OK?', { status: 400 });
 		}
 
 		let sig = url.searchParams.get('sig');
@@ -53,10 +71,17 @@ export default {
 			return new Response('Need more than 48 SoulPoint.', { status: 400 });
 		}
 
+		const range = parseRange(request.headers.get('range'))
 		const object = await env.R2.get(file, {
-			range: request.headers,
+			range,
 			onlyIf: request.headers,
 		})
+
+		console.log({
+			range: request.headers,
+			onlyIf: request.headers,
+		});
+
 
 		if (!object) {
 			return new Response('Not Found', { status: 404 });
@@ -65,8 +90,8 @@ export default {
 		const headers = new Headers()
 		object.writeHttpMetadata(headers)
 		headers.set('etag', object.httpEtag)
-		if (object.range) {
-			headers.set("content-range", `bytes ${object.range.offset}-${object.range.end ?? object.size - 1}/${object.size}`)
+		if (range) {
+			headers.set("content-range", `bytes ${range.offset}-${range.end}/${object.size}`)
 		}
 
 		const status = object.body ? (request.headers.get("range") !== null ? 206 : 200) : 304

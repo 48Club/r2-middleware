@@ -2,6 +2,7 @@ name = "r2-middleware"
 main = "src/index.js"
 compatibility_date = "2024-12-24"
 compatibility_flags = ["nodejs_compat"]
+mode = "smart"
 
 [[r2_buckets]]
 binding = 'R2'
