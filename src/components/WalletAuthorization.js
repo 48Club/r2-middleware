@@ -5,19 +5,24 @@ const WalletAuthorization = () => {
     const [isWalletConnected, setIsWalletConnected] = useState(false);
     const [walletAddress, setWalletAddress] = useState('');
     // 检查钱包是否已连接
+    const getProvider = () => {
+        let provider;
+        if (window.ethereum == null) {
+            console.log("MetaMask not installed; using read-only defaults")
+            provider = ethers.getDefaultProvider();
+        } else {
+            provider = new ethers.BrowserProvider(window.ethereum);
+
+        }
+        return provider;
+    }
     useEffect(() => {
         const checkWalletConnection = async () => {
-            let provider;
-            if (window.ethereum == null) {
-                console.log("MetaMask not installed; using read-only defaults")
-                provider = ethers.getDefaultProvider()
-            } else {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.listAccounts();
-                if (accounts.length > 0) {
-                    setWalletAddress(accounts[0].address);
-                    setIsWalletConnected(true);
-                }
+            let provider = getProvider();
+            const accounts = await provider?.listAccounts();
+            if (accounts?.length > 0) {
+                setWalletAddress(accounts[0].address);
+                setIsWalletConnected(true);
             }
         };
 
@@ -26,15 +31,8 @@ const WalletAuthorization = () => {
 
     // 连接钱包
     const connectWallet = async () => {
-        let provider;
-        if (window.ethereum == null) {
-            console.log("MetaMask not installed; using read-only defaults")
-            provider = ethers.getDefaultProvider()
-        } else {
-            console.log("MetaMask installed; using injected Ethereum provider");
-            provider = new ethers.BrowserProvider(window.ethereum);
-        }
-        const signer = await provider.getSigner();
+        let provider = getProvider();
+        const signer = await provider?.getSigner();
         if (signer) {
             setWalletAddress(signer.address);
             setIsWalletConnected(true);
@@ -47,8 +45,11 @@ const WalletAuthorization = () => {
 
     const [option1, setOption1] = useState('');
     const [option2, setOption2] = useState('');
-    const [authorized, setAuthorized] = useState(false);
-    const [link, setLink] = useState('');
+    const [authorized, setAuthorized] = useState({
+        authorized: false,
+        link: '',
+        md5: '',
+    });
 
     const [options2, setOptions2] = useState([]);
     const [apiData, setApiData] = useState({});
@@ -70,9 +71,13 @@ const WalletAuthorization = () => {
     useEffect(() => {
         // 根据 Option 1 的选择更新 Option 2 的选项
         if (option1 && apiData[option1]) {
-            const filteredOptions = apiData[option1].length > 1
-                ? apiData[option1].slice(0, 2) // 只取前两项
+            const options = apiData[option1];
+            const filteredOptions = options.length > 1
+                ? options.slice(0, -1) // 不取最后一项
                 : []; // 如果只有一项，则清空选项
+            if (filteredOptions.length === 0) {
+                setOption2('');
+            }
             setOptions2(filteredOptions);
         } else {
             setOptions2([]);
@@ -85,26 +90,43 @@ const WalletAuthorization = () => {
             return;
         }
 
+        // 获取对应数组的最后一个元素
+        const lastArrayValue = apiData[option1]?.slice(-1)[0];
+        if (!lastArrayValue) {
+            alert('Invalid data for the selected options.');
+            return;
+        }
+
+        // 拼接目标字符串
+        const patchFile = `${option1}${option2}_to_${lastArrayValue}.patch`;
+        const tt = parseInt(Date.now() / 1000 + 24 * 60 * 60);
+        let msg = JSON.stringify({
+            file: patchFile,
+            tt: tt,
+        })
+        console.log('msg:', msg);
         try {
-            // Simulate a wallet authorization process
-            const authorizationResult = await fakeWalletAuthorization(option1, option2);
-            if (authorizationResult.success) {
-                setAuthorized(true);
-                setLink(authorizationResult.link);
-                alert('Authorization successful!');
-            } else {
-                alert('Authorization failed. Please try again.');
+            let provider = getProvider();
+            let signer = await provider?.getSigner();
+            if (!signer) {
+                return alert('Failed to connect to wallet. Please try again.');
             }
+
+            let sign = await signer.signMessage(msg)
+            console.log('sign:', sign);
+
+            setLink();
+            setAuthorized({
+                authorized: true,
+                link: `https://incremental.snapshots.48.club/?sig=${sign}&file=${patchFile}&tt=${tt}`,
+                md5: apiData[patchFile],
+            });
         } catch (error) {
+            setAuthorized(false);
             alert('An error occurred during authorization: ' + error.message);
         }
     };
 
-
-    const fakeWalletAuthorization = async (option1, option2) => {
-        // @TODO: 发起签名请求
-        return { success: false, link: 'https://example.com/authorized-resource' }
-    };
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -125,9 +147,9 @@ const WalletAuthorization = () => {
                         style={{ marginLeft: '10px' }}
                     >
                         <option value="">Select an option</option>
-                        <option value="geth.fast">geth fast node</option>
-                        <option value="geth.full">geth full node</option>
-                        <option value="erigon">erigon fast node</option>
+                        <option value="geth_fast_">geth fast node</option>
+                        <option value="geth_full_">geth full node</option>
+                        <option value="erigon_">erigon fast node</option>
                     </select>
                 </label>
             </div>
@@ -157,12 +179,13 @@ const WalletAuthorization = () => {
             )}
 
 
-            {authorized && (
+            {authorized.authorized && (
                 <div style={{ marginTop: '20px' }}>
                     <p>Signature successful! Access your resource here:</p>
-                    <a href={link} target="_blank" rel="noopener noreferrer">
-                        {link}
+                    <a href={authorized.link} target="_blank" rel="noopener noreferrer">
+                        {authorized.link}
                     </a>
+                    <p>MD5: {authorized.md5}</p>
                 </div>
             )}
         </div>
