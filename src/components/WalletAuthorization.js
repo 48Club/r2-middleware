@@ -115,7 +115,6 @@ const WalletAuthorization = () => {
             let sign = await signer.signMessage(msg)
             console.log('sign:', sign);
 
-            setLink();
             setAuthorized({
                 authorized: true,
                 link: `https://incremental.snapshots.48.club/?sig=${sign}&file=${patchFile}&tt=${tt}`,
