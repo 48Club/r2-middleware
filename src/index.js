@@ -77,11 +77,6 @@ export default {
 			onlyIf: request.headers,
 		})
 
-		console.log({
-			range: request.headers,
-			onlyIf: request.headers,
-		});
-
 
 		if (!object) {
 			return new Response('Not Found', { status: 404 });
@@ -90,6 +85,7 @@ export default {
 		const headers = new Headers()
 		object.writeHttpMetadata(headers)
 		headers.set('etag', object.httpEtag)
+		headers.set("Content-Disposition", `attachment; filename="${file.split('/').pop()}"`)
 		if (range) {
 			headers.set("content-range", `bytes ${range.offset}-${range.end}/${object.size}`)
 		}
