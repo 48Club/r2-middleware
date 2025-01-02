@@ -64,7 +64,7 @@ const WalletAuthorization = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/48Club/bsc-snapshots/refs/heads/develop/api.json');
+                const response = await fetch(`https://raw.githubusercontent.com/48Club/bsc-snapshots/refs/heads/develop/api.json?data=${Date.now()}`);
                 const data = await response.json();
                 setApiData(data);
             } catch (error) {
@@ -108,7 +108,7 @@ const WalletAuthorization = () => {
         }
 
         // 拼接目标字符串
-        const patchFile = `${option1}${option2}_to_${lastArrayValue}.patch`;
+        const patchFile = `${option1}${lastArrayValue}/${option2}_to_${lastArrayValue}.patch`;
         const tt = parseInt(Date.now() / 1000 + 24 * 60 * 60);
         let msg = JSON.stringify({
             file: patchFile,
@@ -162,9 +162,9 @@ const WalletAuthorization = () => {
                         style={{ marginLeft: '10px' }}
                     >
                         <option value="">Select an option</option>
-                        <option value="geth_fast_">geth fast node</option>
-                        <option value="geth_full_">geth full node</option>
-                        <option value="erigon_">erigon fast node</option>
+                        <option value="geth/fast/">geth fast node</option>
+                        <option value="geth/full/">geth full node</option>
+                        <option value="erigon/">erigon fast node</option>
                     </select>
                 </label>
             </div>
