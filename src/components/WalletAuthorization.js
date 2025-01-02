@@ -52,6 +52,7 @@ const WalletAuthorization = () => {
 
     const [option1, setOption1] = useState('');
     const [option2, setOption2] = useState('');
+    const [latestBlock, setLatestBlock] = useState(0);
     const [authorized, setAuthorized] = useState({
         authorized: false,
         link: '',
@@ -83,6 +84,9 @@ const WalletAuthorization = () => {
                 : []; // 如果只有一项，则清空选项
             if (filteredOptions.length === 0) {
                 setOption2('');
+                setLatestBlock(0);
+            } else {
+                setLatestBlock(options[options.length - 1]);
             }
             setOptions2(filteredOptions);
         } else {
@@ -162,6 +166,16 @@ const WalletAuthorization = () => {
                         <option value="geth_full_">geth full node</option>
                         <option value="erigon_">erigon fast node</option>
                     </select>
+                </label>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+                <label>
+                    {latestBlock === 0 ? (
+                        <span>no patch available</span>
+                    ) : (
+                        <span>can be patched to: {latestBlock}</span>
+                    )}
                 </label>
             </div>
 
